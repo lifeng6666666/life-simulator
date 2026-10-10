@@ -1,0 +1,17 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Setup from "@/pages/Setup";
+import Simulate from "@/pages/Simulate";
+import Journey from "@/pages/Journey";
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Setup />} />
+        <Route path="/simulate" element={<Simulate />} />
+        <Route path="/journey" element={<Journey />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
+}
