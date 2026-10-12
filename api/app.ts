@@ -11,7 +11,6 @@ import cors from 'cors'
 import path from 'path'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
-import authRoutes from './routes/auth.js'
 import simulateRoutes from './routes/simulate.js'
 
 // for esm mode
@@ -30,7 +29,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 /**
  * API Routes
  */
-app.use('/api/auth', authRoutes)
 app.use('/api/simulate', simulateRoutes)
 
 /**

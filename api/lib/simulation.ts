@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 人生模拟引擎
  * 串行调用 A/B/C 三个智能体，通过 SSE 推送结果
  */
@@ -117,7 +117,7 @@ export async function runSimulation(
   ];
   const NVIDIA_POOL = [
     'nvidia/nemotron-3.5-lightning-30b-a3b',
-    'z-ai/glm-5-3-flash',
+    'z-ai/glm-5.3-flash',
     'deepseek-ai/deepseek-v4.1-flash',
     'meta/muse-glimmer-30b',
   ];

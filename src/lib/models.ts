@@ -32,7 +32,7 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     provider: "nvidia",
   },
   {
-    id: "z-ai/glm-5-3",
+    id: "z-ai/glm-5.3",
     label: "GLM-5.3",
     description: "753B 文本 MoE，推理与工具调用能力强",
     provider: "nvidia",
@@ -114,7 +114,7 @@ export const MODEL_MAP: Record<string, ModelInfo> = Object.fromEntries(
 export const DEFAULT_MODELS = {
   coach: "deepseek-ai/deepseek-v4.1-flash",
   player: "nvidia/nemotron-3.5-lightning-30b-a3b",
-  environment: "z-ai/glm-5-3-flash",
+  environment: "z-ai/glm-5.3-flash",
 };
 
 /** 模型按 provider 分组，供 optgroup 渲染 */
@@ -139,7 +139,7 @@ export const PROVIDER_DEFAULTS: Record<
   nvidia: {
     coach: "deepseek-ai/deepseek-v4.1-flash",
     player: "nvidia/nemotron-3.5-lightning-30b-a3b",
-    environment: "z-ai/glm-5-3-flash",
+    environment: "z-ai/glm-5.3-flash",
   },
   openrouter: {
     coach: "nvidia/nemotron-3.5-lightning:free",
