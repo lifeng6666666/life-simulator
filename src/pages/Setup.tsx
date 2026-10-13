@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Rocket, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Rocket, Eye, EyeOff, ChevronDown, History } from "lucide-react";
 import { AVAILABLE_MODELS, PROVIDER_DEFAULTS, DEFAULT_MODELS } from "@/lib/models";
 import type { ModelProvider } from "@/store/simStore";
 import { useSimulation } from "@/hooks/useSimulation";
@@ -13,26 +13,39 @@ import { cn } from "@/lib/utils";
 const PROVIDER_OPTIONS: { value: ModelProvider; label: string; hint: string }[] = [
   { value: "nvidia", label: "NVIDIA NIM", hint: "build.nvidia.com 免费额度" },
   { value: "openrouter", label: "OpenRouter 免费池", hint: "openrouter.ai 免费模型 $0/1M" },
+  { value: "modelscope", label: "魔搭 ModelScope", hint: "modelscope.cn Flash 模型低消耗" },
 ];
+
+/** 本地测试默认配置：表单预填，可随时手动修改 */
+const DEFAULTS = {
+  nvidiaKey: "REDACTED",
+  orKey: "REDACTED",
+  msKey: "REDACTED",
+  age: 25,
+  occupation: "程序员",
+  resources: "存款5万",
+  goal: "赢取白富美",
+};
 
 export default function Setup() {
   const navigate = useNavigate();
   const { begin } = useSimulation();
 
   const [provider, setProvider] = useState<ModelProvider>("nvidia");
-  const [nvidiaKey, setNvidiaKey] = useState("");
-  const [orKey, setOrKey] = useState("");
+  const [nvidiaKey, setNvidiaKey] = useState(DEFAULTS.nvidiaKey);
+  const [orKey, setOrKey] = useState(DEFAULTS.orKey);
+  const [msKey, setMsKey] = useState(DEFAULTS.msKey);
   const [showKey, setShowKey] = useState(false);
-  const [age, setAge] = useState(25);
-  const [occupation, setOccupation] = useState("");
-  const [resources, setResources] = useState("");
-  const [goal, setGoal] = useState("");
+  const [age, setAge] = useState(DEFAULTS.age);
+  const [occupation, setOccupation] = useState(DEFAULTS.occupation);
+  const [resources, setResources] = useState(DEFAULTS.resources);
+  const [goal, setGoal] = useState(DEFAULTS.goal);
   const [rounds, setRounds] = useState(10);
   const [rateLimitMs, setRateLimitMs] = useState(2000);
   const [models, setModels] = useState(DEFAULT_MODELS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const activeKey = provider === "nvidia" ? nvidiaKey : orKey;
+  const activeKey = provider === "nvidia" ? nvidiaKey : provider === "modelscope" ? msKey : orKey;
   const canStart = goal.trim() && activeKey.trim();
 
   const handleProviderChange = (p: ModelProvider) => {
@@ -46,6 +59,7 @@ export default function Setup() {
       apiKeys: {
         nvidia: nvidiaKey.trim() || undefined,
         openrouter: orKey.trim() || undefined,
+        modelscope: msKey.trim() || undefined,
       },
       models: {
         coach: { id: models.coach, provider },
@@ -70,6 +84,17 @@ export default function Setup() {
       <div className="relative z-10 flex items-center justify-center min-h-screen px-6 py-12">
         <div className="w-full max-w-3xl">
           {/* 标题区 */}
+          {/* 历史入口 */}
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={() => navigate("/history")}
+              className="flex items-center gap-1.5 text-sm text-starwhite/40 hover:text-amber transition-colors"
+            >
+              <History size={15} />
+              历史推演
+            </button>
+          </div>
+
           <div className="text-center mb-10 animate-slide-up">
             <p className="font-mono text-xs tracking-[0.4em] text-amber/60 uppercase mb-3">
               Life Simulator
@@ -106,17 +131,29 @@ export default function Setup() {
             {/* API Key */}
             <div>
               <label className="block text-sm text-starwhite/70 mb-2 font-medium">
-                {provider === "nvidia" ? "NVIDIA API Key" : "OpenRouter API Key"}
+                {provider === "nvidia"
+                  ? "NVIDIA API Key"
+                  : provider === "modelscope"
+                    ? "ModelScope 令牌 (Token)"
+                    : "OpenRouter API Key"}
                 <span className="text-amber/80 ml-1">*</span>
               </label>
               <div className="relative">
                 <input
                   type={showKey ? "text" : "password"}
                   value={activeKey}
-                  onChange={(e) =>
-                    provider === "nvidia" ? setNvidiaKey(e.target.value) : setOrKey(e.target.value)
+                  onChange={(e) => {
+                    if (provider === "nvidia") setNvidiaKey(e.target.value);
+                    else if (provider === "modelscope") setMsKey(e.target.value);
+                    else setOrKey(e.target.value);
+                  }}
+                  placeholder={
+                    provider === "nvidia"
+                      ? "nvapi-xxxx..."
+                      : provider === "modelscope"
+                        ? "ms-xxxx-xxxx..."
+                        : "sk-or-v1-xxxx..."
                   }
-                  placeholder={provider === "nvidia" ? "nvapi-xxxx..." : "sk-or-v1-xxxx..."}
                   className="input-glow w-full bg-midnight-950/60 border border-midnight-600 rounded-lg px-4 py-3 pr-12 text-starwhite text-sm font-mono"
                 />
                 <button
@@ -140,6 +177,19 @@ export default function Setup() {
                       build.nvidia.com
                     </a>{" "}
                     获取免费 API Key
+                  </>
+                ) : provider === "modelscope" ? (
+                  <>
+                    从{" "}
+                    <a
+                      href="https://modelscope.cn/my/myaccesstoken"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-amber/70 hover:text-amber underline"
+                    >
+                      modelscope.cn 访问令牌
+                    </a>{" "}
+                    获取（Flash 模型消耗量小）
                   </>
                 ) : (
                   <>
@@ -263,7 +313,7 @@ export default function Setup() {
                     </label>
                     <input
                       type="range"
-                      min={5}
+                      min={1}
                       max={30}
                       value={rounds}
                       onChange={(e) => setRounds(Number(e.target.value))}

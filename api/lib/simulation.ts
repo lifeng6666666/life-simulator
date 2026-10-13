@@ -24,6 +24,7 @@ export interface SimulateRequest {
   apiKeys: {
     nvidia?: string;
     openrouter?: string;
+    modelscope?: string;
   };
   models: {
     coach: ModelSpec;
@@ -38,6 +39,28 @@ export interface SimulateRequest {
   };
   rounds: number;
   rateLimitMs: number;
+  /** 断点恢复：从中断处继续推演 */
+  resume?: ResumeState;
+}
+
+export interface ResumeState {
+  /** 从第几轮开始（已完成轮数 + 1） */
+  startRound: number;
+  age: number;
+  goal: string;
+  goalProgress: number;
+  resources: string;
+  keyEvents: string[];
+  rounds: {
+    overallPlan: string;
+    nextStep: string;
+    action: string;
+    envFeedback: string;
+    result: string;
+    age: number;
+    goalProgress: number;
+    keyEvents: string[];
+  }[];
 }
 
 export interface RoundState {
@@ -82,29 +105,37 @@ export async function runSimulation(
   req: SimulateRequest,
   sendSSE: (event: SSEEvent) => void
 ): Promise<void> {
+  const resume = req.resume;
   const state: SimState = {
-    age: req.situation.age,
-    goal: req.situation.currentGoal,
-    goalProgress: 0,
-    resources: req.situation.resources,
+    age: resume?.age ?? req.situation.age,
+    goal: resume?.goal ?? req.situation.currentGoal,
+    goalProgress: resume?.goalProgress ?? 0,
+    resources: resume?.resources || req.situation.resources,
     occupation: req.situation.occupation,
-    keyEvents: [],
-    rounds: [],
+    keyEvents: resume?.keyEvents ?? [],
+    rounds: resume?.rounds ?? [],
   };
+  const startRound = resume?.startRound ?? 1;
 
   const { models, rateLimitMs } = req;
-  const callOpts = { rateLimitMs, maxTokens: 1024, temperature: 0.85 };
+  const callOpts = { rateLimitMs, maxTokens: 2048, temperature: 0.85 };
 
   const keyFor = (provider: LLMProvider): string => {
-    const key = provider === 'nvidia' ? req.apiKeys.nvidia : req.apiKeys.openrouter;
+    const key =
+      provider === 'nvidia'
+        ? req.apiKeys.nvidia
+        : provider === 'openrouter'
+          ? req.apiKeys.openrouter
+          : req.apiKeys.modelscope;
+    const name =
+      provider === 'nvidia' ? 'NVIDIA' : provider === 'openrouter' ? 'OpenRouter' : 'ModelScope';
     if (!key) {
-      throw new Error(provider === 'nvidia' ? '缺少 NVIDIA API Key' : '缺少 OpenRouter API Key');
+      throw new Error(`缺少 ${name} API Key`);
     }
     return key;
   };
 
-  const agentName = (spec: ModelSpec): string =>
-    spec.provider === 'openrouter' ? 'openrouter' : 'nvidia';
+  const agentName = (spec: ModelSpec): string => spec.provider;
 
   // 免费池 fallback 链：主模型被限速时自动切换同池其他模型
   const OPENROUTER_POOL = [
@@ -122,6 +153,8 @@ export async function runSimulation(
     'meta/muse-glimmer-30b',
   ];
   const fallbacksFor = (spec: ModelSpec): string[] => {
+    // 魔搭：固定三模型，不回退（429 仅同模型退避重试）
+    if (spec.provider === 'modelscope') return [];
     const pool = spec.provider === 'openrouter' ? OPENROUTER_POOL : NVIDIA_POOL;
     return pool.filter((id) => id !== spec.id).slice(0, 3);
   };
@@ -138,7 +171,7 @@ export async function runSimulation(
       waitMs: Math.round(info.delayMs),
     } as SSEEvent);
 
-  for (let round = 1; round <= req.rounds; round++) {
+  for (let round = startRound; round <= req.rounds; round++) {
     sendSSE({ type: 'round_start', round });
 
     const historyText = buildHistoryText(state);
@@ -298,11 +331,11 @@ export async function runSimulation(
       { role: 'system', content: getCoachSystemPrompt() },
       { role: 'user', content: buildCoachSummaryUserPrompt(fullHistory) },
     ],
-    { ...callOpts, maxTokens: 2048, onRetry: retryFor(models.coach), fallbackModels: fallbacksFor(models.coach) }
+    { ...callOpts, onRetry: retryFor(models.coach), fallbackModels: fallbacksFor(models.coach) }
   );
 
-  const summary = extractJSON<{ report: string }>(summaryResp);
-  const report = summary?.report ?? summaryResp;
+  const summary = extractJSON<Record<string, string>>(summaryResp);
+  const report = summary?.report || summary?.['人生总结报告'] || summaryResp;
 
   sendSSE({ type: 'final_report', report });
 }

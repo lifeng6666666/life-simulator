@@ -46,6 +46,7 @@ router.post('/', async (req: Request, res: Response) => {
     apiKeys: {
       nvidia: body.apiKeys?.nvidia,
       openrouter: body.apiKeys?.openrouter,
+      modelscope: body.apiKeys?.modelscope,
     },
     models: body.models,
     situation: {
@@ -56,6 +57,7 @@ router.post('/', async (req: Request, res: Response) => {
     },
     rounds,
     rateLimitMs,
+    resume: body.resume,
   };
 
   // 设置 SSE headers

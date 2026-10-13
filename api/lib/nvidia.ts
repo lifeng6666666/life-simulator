@@ -3,11 +3,12 @@
  * OpenAI 兼容格式调用免费模型
  */
 
-export type LLMProvider = 'nvidia' | 'openrouter';
+export type LLMProvider = 'nvidia' | 'openrouter' | 'modelscope';
 
 const PROVIDER_BASE_URL: Record<LLMProvider, string> = {
   nvidia: 'https://integrate.api.nvidia.com/v1',
   openrouter: 'https://openrouter.ai/api/v1',
+  modelscope: 'https://api-inference.modelscope.cn/v1',
 };
 
 interface ChatMessage {

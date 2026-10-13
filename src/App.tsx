@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Setup from "@/pages/Setup";
 import Simulate from "@/pages/Simulate";
 import Journey from "@/pages/Journey";
+import History from "@/pages/History";
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
         <Route path="/" element={<Setup />} />
         <Route path="/simulate" element={<Simulate />} />
         <Route path="/journey" element={<Journey />} />
+        <Route path="/history" element={<History />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

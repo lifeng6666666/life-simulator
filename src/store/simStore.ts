@@ -27,7 +27,7 @@ export interface RoundData {
   keyEvents: string[];
 }
 
-export type ModelProvider = "nvidia" | "openrouter";
+export type ModelProvider = "nvidia" | "openrouter" | "modelscope";
 
 export interface ModelSpec {
   id: string;
@@ -38,6 +38,7 @@ export interface SimConfig {
   apiKeys: {
     nvidia?: string;
     openrouter?: string;
+    modelscope?: string;
   };
   models: {
     coach: ModelSpec;
@@ -74,6 +75,7 @@ interface SimState {
   goal: string;
   goalProgress: number;
   keyEvents: string[];
+  resources: string;
   finalReport: string | null;
   error: string | null;
   activeAgent: AgentRole | null;
@@ -82,8 +84,20 @@ interface SimState {
   pendingNewGoal: string;
 
   startSimulation: (config: SimConfig) => void;
+  resumeSimulation: (config: SimConfig, resume: ResumePayload) => void;
   handleSSEEvent: (event: SSEEventData) => void;
   reset: () => void;
+}
+
+/** 断点恢复负载：从 store 当前状态构建 */
+export interface ResumePayload {
+  startRound: number;
+  age: number;
+  goal: string;
+  goalProgress: number;
+  resources: string;
+  keyEvents: string[];
+  rounds: RoundData[];
 }
 
 interface SSEEventData {
@@ -125,6 +139,7 @@ export const useSimStore = create<SimState>((set, get) => ({
   goal: "",
   goalProgress: 0,
   keyEvents: [],
+  resources: "",
   finalReport: null,
   error: null,
   activeAgent: null,
@@ -144,6 +159,30 @@ export const useSimStore = create<SimState>((set, get) => ({
       goal: config.situation.currentGoal,
       goalProgress: 0,
       keyEvents: [],
+      resources: config.situation.resources,
+      finalReport: null,
+      error: null,
+      activeAgent: null,
+      retryInfo: null,
+      pendingGoalChanged: false,
+      pendingNewGoal: "",
+    });
+  },
+
+  resumeSimulation: (config: SimConfig, resume: ResumePayload) => {
+    set({
+      status: "running",
+      config,
+      currentRound: resume.startRound - 1,
+      totalRounds: config.rounds,
+      // 丢弃未完成轮次的半截消息，保留已完成轮次
+      agentMessages: get().agentMessages.filter((m) => m.round < resume.startRound),
+      rounds: resume.rounds,
+      age: resume.age,
+      goal: resume.goal,
+      goalProgress: resume.goalProgress,
+      keyEvents: resume.keyEvents,
+      resources: resume.resources || config.situation.resources,
       finalReport: null,
       error: null,
       activeAgent: null,
@@ -279,6 +318,7 @@ export const useSimStore = create<SimState>((set, get) => ({
             goal: event.state.goal ?? state.goal,
             goalProgress: event.state.goalProgress,
             keyEvents: event.state.keyEvents ?? state.keyEvents,
+            resources: event.state.resources || state.resources,
             activeAgent: null,
             retryInfo: null,
             pendingGoalChanged: false,
@@ -319,6 +359,7 @@ export const useSimStore = create<SimState>((set, get) => ({
       goal: "",
       goalProgress: 0,
       keyEvents: [],
+      resources: "",
       finalReport: null,
       error: null,
       activeAgent: null,

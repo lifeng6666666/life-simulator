@@ -1,8 +1,8 @@
 /**
- * 可用模型列表（NVIDIA NIM + OpenRouter 免费池）
+ * 可用模型列表（NVIDIA NIM + OpenRouter 免费池 + 魔搭 Flash）
  */
 
-export type ModelProvider = "nvidia" | "openrouter";
+export type ModelProvider = "nvidia" | "openrouter" | "modelscope";
 
 export interface ModelInfo {
   id: string;
@@ -105,6 +105,26 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     description: "MoE 仅激活 3.8B，近 31B 质量，原生函数调用",
     provider: "openrouter",
   },
+
+  // 魔搭 ModelScope Flash 模型（实测可用，低消耗；其余模型因 429/400/推理消耗大已剔除）
+  {
+    id: "stepfun-ai/Step-3.7-Flash",
+    label: "Step 3.7 Flash (MS)",
+    description: "阶跃星辰 Flash，推理强，适合战略规划",
+    provider: "modelscope",
+  },
+  {
+    id: "Qwen/Qwen3.8-Flash-Next",
+    label: "Qwen3.8 Flash Next (MS)",
+    description: "通义千问最新 Flash，适合执行推演",
+    provider: "modelscope",
+  },
+  {
+    id: "stepfun-ai/Step-3.5-Flash",
+    label: "Step 3.5 Flash (MS)",
+    description: "阶跃星辰 Flash，适合环境模拟与角色扮演",
+    provider: "modelscope",
+  },
 ];
 
 export const MODEL_MAP: Record<string, ModelInfo> = Object.fromEntries(
@@ -129,6 +149,11 @@ export const MODEL_GROUPS: { label: string; provider: ModelProvider; models: Mod
     provider: "openrouter",
     models: AVAILABLE_MODELS.filter((m) => m.provider === "openrouter"),
   },
+  {
+    label: "魔搭 Flash",
+    provider: "modelscope",
+    models: AVAILABLE_MODELS.filter((m) => m.provider === "modelscope"),
+  },
 ];
 
 /** 每个服务商的默认三角色模型 */
@@ -145,5 +170,10 @@ export const PROVIDER_DEFAULTS: Record<
     coach: "nvidia/nemotron-3.5-lightning:free",
     player: "thinkingmachines/inkling-small:free",
     environment: "google/gemma-4-26b-a4b-it:free",
+  },
+  modelscope: {
+    coach: "stepfun-ai/Step-3.7-Flash",
+    player: "Qwen/Qwen3.8-Flash-Next",
+    environment: "stepfun-ai/Step-3.5-Flash",
   },
 };
