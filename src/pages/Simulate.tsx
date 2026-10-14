@@ -21,6 +21,7 @@ import {
 import { useSimStore, type AgentRole, type AgentMessage, type RoundData } from "@/store/simStore";
 import { useSimulation } from "@/hooks/useSimulation";
 import LifeStages from "@/components/LifeStages";
+import { formatAge, formatElapsed } from "@/lib/stages";
 import { cn } from "@/lib/utils";
 
 export default function Simulate() {
@@ -34,6 +35,7 @@ export default function Simulate() {
     rounds,
     finalReport,
     age,
+    totalWeeks,
     goal,
     goalProgress,
     keyEvents,
@@ -199,8 +201,9 @@ export default function Simulate() {
               </p>
             </div>
 
-            {/* 年龄 */}
-            <Stat label="模拟年龄" value={`${age} 岁`} />
+            {/* 年龄 / 已流逝时间 */}
+            <Stat label="模拟年龄" value={formatAge(age)} />
+            <Stat label="已流逝" value={totalWeeks > 0 ? formatElapsed(totalWeeks) : "—"} />
 
             {/* 进度环 */}
             <div className="flex items-center gap-3">
@@ -370,7 +373,8 @@ function RoundRow({
   isCurrent: boolean;
   activeAgent: AgentRole | null;
 }) {
-  const nextMsg = msgs.find((m) => m.label === "下一步行动");
+  // label 可能带周数后缀（"下一步行动 · 约12周"），用前缀匹配
+  const nextMsg = msgs.find((m) => m.label.startsWith("下一步行动"));
   const planMsg = msgs.find((m) => m.label === "整体规划");
   const actionMsg = msgs.find((m) => m.label === "执行行动");
   const resultMsg = msgs.find((m) => m.label === "执行记录");
@@ -405,7 +409,7 @@ function RoundRow({
           <PlanTweak content={planMsg.content} fromRound={groupPlanRound} />
         )}
         {nextMsg ? (
-          <MsgCard label="下一步" content={nextMsg.content} color="#8b6db5" highlight={activeAgent === "coach"} />
+          <MsgCard label={nextMsg.label.replace("下一步行动", "下一步")} content={nextMsg.content} color="#8b6db5" highlight={activeAgent === "coach"} />
         ) : (
           <EmptyCell active={activeAgent === "coach"} />
         )}

@@ -4,6 +4,8 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vite.dev/config/
 export default defineConfig({
+  // 相对路径，支持部署到 GitHub Pages 等静态托管的子路径
+  base: './',
   plugins: [
     react({
       babel: {

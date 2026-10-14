@@ -23,6 +23,7 @@ export interface RoundData {
   goalChanged: boolean;
   newGoal: string;
   age: number;
+  elapsedWeeks?: number;
   goalProgress: number;
   keyEvents: string[];
 }
@@ -33,6 +34,9 @@ export interface ModelSpec {
   id: string;
   provider: ModelProvider;
 }
+
+/** 时间跨度档位：3years=节奏快（约3年） / 5years=按季度（约5年） */
+export type TimeSpan = "3years" | "5years";
 
 export interface SimConfig {
   apiKeys: {
@@ -49,10 +53,14 @@ export interface SimConfig {
     age: number;
     occupation: string;
     resources: string;
+    /** 性格与特质（如：拖延、社恐 / 自律、外向、漂亮），影响执行难度与环境反应 */
+    traits: string;
     currentGoal: string;
   };
   rounds: number;
   rateLimitMs: number;
+  /** 每轮代表的时间长度档位，决定 20 轮总跨度 */
+  timeSpan: TimeSpan;
 }
 
 export interface RetryInfo {
@@ -72,6 +80,8 @@ interface SimState {
   agentMessages: AgentMessage[];
   rounds: RoundData[];
   age: number;
+  /** 已流逝累计周数 */
+  totalWeeks: number;
   goal: string;
   goalProgress: number;
   keyEvents: string[];
@@ -97,14 +107,16 @@ export interface ResumePayload {
   goalProgress: number;
   resources: string;
   keyEvents: string[];
+  totalWeeks: number;
   rounds: RoundData[];
 }
 
-interface SSEEventData {
+export interface SSEEventData {
   type: string;
   round?: number;
   overallPlan?: string;
   nextStep?: string;
+  estimatedWeeks?: number;
   action?: string;
   feedback?: string;
   result?: string;
@@ -119,6 +131,8 @@ interface SSEEventData {
   waitMs?: number;
   state?: {
     age: number;
+    elapsedWeeks?: number;
+    totalWeeks?: number;
     goalProgress: number;
     keyEvents: string[];
     resources: string;
@@ -136,6 +150,7 @@ export const useSimStore = create<SimState>((set, get) => ({
   agentMessages: [],
   rounds: [],
   age: 0,
+  totalWeeks: 0,
   goal: "",
   goalProgress: 0,
   keyEvents: [],
@@ -179,6 +194,7 @@ export const useSimStore = create<SimState>((set, get) => ({
       agentMessages: get().agentMessages.filter((m) => m.round < resume.startRound),
       rounds: resume.rounds,
       age: resume.age,
+      totalWeeks: resume.totalWeeks,
       goal: resume.goal,
       goalProgress: resume.goalProgress,
       keyEvents: resume.keyEvents,
@@ -228,7 +244,7 @@ export const useSimStore = create<SimState>((set, get) => ({
             {
               round: event.round!,
               role: "coach",
-              label: "下一步行动",
+              label: event.estimatedWeeks ? `下一步行动 · 约${event.estimatedWeeks}周` : "下一步行动",
               content: event.nextStep ?? "",
             },
           ],
@@ -298,6 +314,7 @@ export const useSimStore = create<SimState>((set, get) => ({
             goalChanged: state.pendingGoalChanged,
             newGoal: state.pendingNewGoal,
             age: event.state.age,
+            elapsedWeeks: event.state.elapsedWeeks,
             goalProgress: event.state.goalProgress,
             keyEvents: event.state.keyEvents ?? [],
           };
@@ -306,7 +323,7 @@ export const useSimStore = create<SimState>((set, get) => ({
           const roundMessages = state.agentMessages.filter((m) => m.round === roundNum);
           for (const msg of roundMessages) {
             if (msg.label === "整体规划") roundData.overallPlan = msg.content;
-            if (msg.label === "下一步行动") roundData.nextStep = msg.content;
+            if (msg.label.startsWith("下一步行动")) roundData.nextStep = msg.content;
             if (msg.label === "执行行动") roundData.action = msg.content;
             if (msg.label === "环境反馈") roundData.envFeedback = msg.content;
             if (msg.label === "执行记录") roundData.result = msg.content;
@@ -315,6 +332,7 @@ export const useSimStore = create<SimState>((set, get) => ({
           set({
             rounds: [...state.rounds, roundData],
             age: event.state.age,
+            totalWeeks: event.state.totalWeeks ?? state.totalWeeks + (event.state.elapsedWeeks ?? 0),
             goal: event.state.goal ?? state.goal,
             goalProgress: event.state.goalProgress,
             keyEvents: event.state.keyEvents ?? state.keyEvents,
@@ -356,6 +374,7 @@ export const useSimStore = create<SimState>((set, get) => ({
       agentMessages: [],
       rounds: [],
       age: 0,
+      totalWeeks: 0,
       goal: "",
       goalProgress: 0,
       keyEvents: [],

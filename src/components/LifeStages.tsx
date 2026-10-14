@@ -15,7 +15,7 @@ import {
   Target,
 } from "lucide-react";
 import type { RoundData } from "@/store/simStore";
-import { deriveStages } from "@/lib/stages";
+import { deriveStages, formatAge } from "@/lib/stages";
 import { cn } from "@/lib/utils";
 
 interface LifeStagesProps {
@@ -150,7 +150,7 @@ function StageCard({
               <div
                 key={r.round}
                 className="flex-1 flex flex-col items-center justify-end gap-1 group"
-                title={`第 ${r.round} 轮 · ${r.age} 岁 · ${r.goalProgress}%`}
+                title={`第 ${r.round} 轮 · ${formatAge(r.age)}${r.elapsedWeeks ? ` · 历时${r.elapsedWeeks}周` : ""} · ${r.goalProgress}%`}
               >
                 <span className="text-[10px] font-mono text-starwhite/0 group-hover:text-starwhite/50 transition-colors">
                   {r.goalProgress}%
@@ -189,8 +189,9 @@ function RoundRow({ round }: { round: RoundData }) {
         <span className="font-mono text-xs text-amber/60 w-12 flex-shrink-0">
           第{round.round}轮
         </span>
-        <span className="text-xs text-starwhite/40 w-9 flex-shrink-0 font-mono">
-          {round.age}岁
+        <span className="text-xs text-starwhite/40 flex-shrink-0 font-mono whitespace-nowrap">
+          {formatAge(round.age)}
+          {round.elapsedWeeks ? ` · ${round.elapsedWeeks}周` : ""}
         </span>
         <span className="flex-1 text-sm text-starwhite/55 truncate">{summary}</span>
         <span className="font-mono text-xs text-starwhite/35 flex-shrink-0">

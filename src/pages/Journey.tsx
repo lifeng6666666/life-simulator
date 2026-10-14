@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Compass, History } from "lucide-react";
 import { useSimStore } from "@/store/simStore";
 import LifeStages from "@/components/LifeStages";
+import { formatAge } from "@/lib/stages";
 
 export default function Journey() {
   const navigate = useNavigate();
@@ -22,7 +23,10 @@ export default function Journey() {
     return null;
   }
 
-  const startAge = config?.situation.age ?? Math.max((rounds[0]?.age ?? age) - 1, 1);
+  // 无 config（如刷新后）时用首轮耗时反推初始年龄
+  const firstElapsed = rounds[0]?.elapsedWeeks ?? 13;
+  const startAge =
+    config?.situation.age ?? Math.max((rounds[0]?.age ?? age) - firstElapsed / 52, 1);
   const startGoal = config?.situation.currentGoal ?? goal;
 
   return (
@@ -53,7 +57,8 @@ export default function Journey() {
           <Compass className="mx-auto mb-3 text-amber" size={32} />
           <h1 className="font-serif text-4xl text-starwhite mb-2">人生历程</h1>
           <p className="text-starwhite/50 text-sm">
-            从 {startAge} 岁到 {age} 岁 · {rounds.length} 轮 · 目标完成度 {goalProgress}%
+            从 {formatAge(startAge)} 到 {formatAge(age)} · {rounds.length} 轮 · 目标完成度{" "}
+            {goalProgress}%
           </p>
         </div>
 

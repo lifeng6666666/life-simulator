@@ -4,9 +4,9 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Rocket, Eye, EyeOff, ChevronDown, History } from "lucide-react";
+import { Rocket, Eye, EyeOff, ChevronDown, History, Share2 } from "lucide-react";
 import { AVAILABLE_MODELS, PROVIDER_DEFAULTS, DEFAULT_MODELS } from "@/lib/models";
-import type { ModelProvider } from "@/store/simStore";
+import type { ModelProvider, TimeSpan } from "@/store/simStore";
 import { useSimulation } from "@/hooks/useSimulation";
 import { cn } from "@/lib/utils";
 
@@ -16,14 +16,29 @@ const PROVIDER_OPTIONS: { value: ModelProvider; label: string; hint: string }[] 
   { value: "modelscope", label: "魔搭 ModelScope", hint: "modelscope.cn Flash 模型低消耗" },
 ];
 
-/** 本地测试默认配置：表单预填，可随时手动修改 */
+/** 时间跨度档位选项 */
+const TIME_SPAN_OPTIONS: { value: TimeSpan; label: string; hint: string }[] = [
+  {
+    value: "3years",
+    label: "节奏快 · 约3年",
+    hint: "每轮 2-16 周：小行动 2-6 周，大节点 8-16 周（一个季度以内）",
+  },
+  {
+    value: "5years",
+    label: "按季度 · 约5年",
+    hint: "每轮约一个季度（12 周左右），每个阶段稳扎稳打",
+  },
+];
+
+/** 表单预填默认值：从本地 .env.local 读取（不提交到 Git），缺失则为空需手动填写 */
 const DEFAULTS = {
-  nvidiaKey: "REDACTED",
-  orKey: "REDACTED",
-  msKey: "REDACTED",
+  nvidiaKey: (import.meta.env.VITE_NVIDIA_KEY as string | undefined) ?? "",
+  orKey: (import.meta.env.VITE_OPENROUTER_KEY as string | undefined) ?? "",
+  msKey: (import.meta.env.VITE_MODELSCOPE_KEY as string | undefined) ?? "",
   age: 25,
   occupation: "程序员",
   resources: "存款5万",
+  traits: "拖延，但关键时刻靠得住",
   goal: "赢取白富美",
 };
 
@@ -31,7 +46,7 @@ export default function Setup() {
   const navigate = useNavigate();
   const { begin } = useSimulation();
 
-  const [provider, setProvider] = useState<ModelProvider>("nvidia");
+  const [provider, setProvider] = useState<ModelProvider>("openrouter");
   const [nvidiaKey, setNvidiaKey] = useState(DEFAULTS.nvidiaKey);
   const [orKey, setOrKey] = useState(DEFAULTS.orKey);
   const [msKey, setMsKey] = useState(DEFAULTS.msKey);
@@ -39,8 +54,10 @@ export default function Setup() {
   const [age, setAge] = useState(DEFAULTS.age);
   const [occupation, setOccupation] = useState(DEFAULTS.occupation);
   const [resources, setResources] = useState(DEFAULTS.resources);
+  const [traits, setTraits] = useState(DEFAULTS.traits);
   const [goal, setGoal] = useState(DEFAULTS.goal);
   const [rounds, setRounds] = useState(10);
+  const [timeSpan, setTimeSpan] = useState<TimeSpan>("5years");
   const [rateLimitMs, setRateLimitMs] = useState(2000);
   const [models, setModels] = useState(DEFAULT_MODELS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -70,10 +87,12 @@ export default function Setup() {
         age,
         occupation: occupation || "未填写",
         resources: resources || "无",
+        traits: traits.trim(),
         currentGoal: goal.trim(),
       },
       rounds,
       rateLimitMs,
+      timeSpan,
     });
     navigate("/simulate");
   };
@@ -277,6 +296,20 @@ export default function Setup() {
 
               <div>
                 <label className="block text-sm text-starwhite/60 mb-1.5">
+                  性格与特质
+                  <span className="text-starwhite/30 ml-1 text-xs">（影响执行难度与现实反应，可留空）</span>
+                </label>
+                <input
+                  type="text"
+                  value={traits}
+                  onChange={(e) => setTraits(e.target.value)}
+                  placeholder="如：拖延、社恐 / 自律、外向、漂亮"
+                  className="input-glow w-full bg-midnight-950/60 border border-midnight-600 rounded-lg px-4 py-2.5 text-starwhite text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-starwhite/60 mb-1.5">
                   人生目标
                   <span className="text-amber/80 ml-1">*</span>
                 </label>
@@ -287,6 +320,41 @@ export default function Setup() {
                   placeholder="如：30岁前实现财务自由，创办一家有影响力的科技公司"
                   className="input-glow w-full bg-midnight-950/60 border border-midnight-600 rounded-lg px-4 py-2.5 text-starwhite text-sm resize-none"
                 />
+              </div>
+            </div>
+
+            {/* 时间跨度 */}
+            <div className="border-t border-midnight-600/50 pt-6">
+              <h2 className="font-serif text-xl text-starwhite/90">时间跨度</h2>
+              <p className="text-xs text-starwhite/40 mt-1 mb-3">
+                每轮推演代表多长时间，决定总跨度（10 轮 ≈ 1.5 年 / 2.5 年）
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {TIME_SPAN_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setTimeSpan(opt.value)}
+                    className={cn(
+                      "text-left rounded-xl border px-4 py-3 transition-all",
+                      timeSpan === opt.value
+                        ? "border-amber bg-amber/10"
+                        : "border-midnight-600 hover:border-midnight-500"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "block text-sm font-medium",
+                        timeSpan === opt.value ? "text-amber" : "text-starwhite/80"
+                      )}
+                    >
+                      {opt.label}
+                    </span>
+                    <span className="block text-xs text-starwhite/40 mt-1 leading-relaxed">
+                      {opt.hint}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -385,21 +453,25 @@ function ModelSelector({
       <label className={cn("block text-sm mb-1.5", `text-agent-${color}Light`)}>
         {label}
       </label>
-      <select
+      <input
+        list={`model-options-${color}`}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value.trim())}
+        placeholder="选择或输入模型 ID"
+        spellCheck={false}
         className={cn(
-          "w-full bg-midnight-950/60 border rounded-lg px-3 py-2.5 text-starwhite text-sm",
-          "focus:outline-none focus:ring-1",
+          "w-full bg-midnight-950/60 border rounded-lg px-3 py-2.5 text-starwhite text-sm font-mono",
+          "focus:outline-none focus:ring-1 placeholder:text-starwhite/25",
           colorMap[color]
         )}
-      >
+      />
+      <datalist id={`model-options-${color}`}>
         {AVAILABLE_MODELS.filter((m) => m.provider === provider).map((m) => (
-          <option key={m.id} value={m.id} className="bg-midnight-900">
+          <option key={m.id} value={m.id}>
             {m.label}
           </option>
         ))}
-      </select>
+      </datalist>
     </div>
   );
 }

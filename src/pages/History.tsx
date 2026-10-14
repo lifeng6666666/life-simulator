@@ -12,20 +12,37 @@ import {
   Trash2,
   History as HistoryIcon,
   Cpu,
+  Share2,
+  Check,
 } from "lucide-react";
 import type { RoundData } from "@/store/simStore";
 import { listRuns, deleteRun, type HistoryRun } from "@/lib/history";
 import LifeStages from "@/components/LifeStages";
+import { formatAge } from "@/lib/stages";
+import { buildShareLink } from "@/lib/share";
 
 export default function History() {
   const navigate = useNavigate();
   const [runs, setRuns] = useState<HistoryRun[]>(() => listRuns());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sharedId, setSharedId] = useState<string | null>(null);
 
   const handleDelete = useCallback((id: string) => {
     deleteRun(id);
     setRuns(listRuns());
     setSelectedId((cur) => (cur === id ? null : cur));
+  }, []);
+
+  /** 复制该推演的分享链接（编码进 URL，任何人打开即可查看） */
+  const handleShare = useCallback(async (run: HistoryRun) => {
+    try {
+      const link = await buildShareLink(run);
+      await navigator.clipboard.writeText(link);
+      setSharedId(run.id);
+      setTimeout(() => setSharedId(null), 2000);
+    } catch {
+      alert("生成分享链接失败");
+    }
   }, []);
 
   const selected = runs.find((r) => r.id === selectedId) ?? null;
@@ -53,7 +70,7 @@ export default function History() {
         {selected ? (
           <HistoryDetail run={selected} />
         ) : (
-          <RunList runs={runs} onOpen={setSelectedId} onDelete={handleDelete} />
+          <RunList runs={runs} onOpen={setSelectedId} onDelete={handleDelete} onShare={handleShare} sharedId={sharedId} />
         )}
 
         <div className="h-20" />
@@ -66,10 +83,14 @@ function RunList({
   runs,
   onOpen,
   onDelete,
+  onShare,
+  sharedId,
 }: {
   runs: HistoryRun[];
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
+  onShare: (run: HistoryRun) => void;
+  sharedId: string | null;
 }) {
   if (runs.length === 0) {
     return (
@@ -113,7 +134,7 @@ function RunList({
                   })}
                 </span>
                 <span className="text-xs text-starwhite/30 font-mono">
-                  {run.situation.age}→{run.finalAge} 岁
+                  {formatAge(run.situation.age)}→{formatAge(run.finalAge)}
                 </span>
               </div>
               <p className="text-starwhite/80 text-sm truncate flex items-center gap-2">
@@ -137,6 +158,13 @@ function RunList({
                   title="查看详情"
                 >
                   <ArrowRight size={15} />
+                </button>
+                <button
+                  onClick={() => onShare(run)}
+                  className={sharedId === run.id ? "p-1.5 rounded-lg text-emerald-400 bg-emerald-500/10" : "p-1.5 rounded-lg text-starwhite/40 hover:text-amber hover:bg-amber/10"}
+                  title={sharedId === run.id ? "已复制分享链接" : "复制分享链接，任何人打开即可查看"}
+                >
+                  {sharedId === run.id ? <Check size={15} /> : <Share2 size={15} />}
                 </button>
                 <button
                   onClick={() => onDelete(run.id)}
@@ -170,8 +198,8 @@ function HistoryDetail({ run }: { run: HistoryRun }) {
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <StatBox label="初始年龄" value={`${run.situation.age} 岁`} />
-          <StatBox label="最终年龄" value={`${run.finalAge} 岁`} />
+          <StatBox label="初始年龄" value={formatAge(run.situation.age)} />
+          <StatBox label="最终年龄" value={formatAge(run.finalAge)} />
           <StatBox label="完成轮数" value={`${run.rounds.length}/${run.totalRounds}`} />
           <StatBox label="目标完成度" value={`${run.goalProgress}%`} highlight />
         </div>

@@ -2,17 +2,47 @@
  * 三个智能体（A执行者 / B教练 / C环境）的系统提示词
  */
 
+/** 时间跨度档位：3years=节奏快（约3年） / 5years=按季度（约5年） */
+export type TimeSpan = "3years" | "5years";
+
+/** 各档位的时间尺度规则（注入到各智能体提示词中，动态调整） */
+const TIME_SCALE: Record<
+  TimeSpan,
+  { scale: string; coachWeeks: string; envWeeks: string; playerCycle: string }
+> = {
+  "3years": {
+    scale: "每轮推演代表 2-16 周（小行动 2-6 周，大节点 8-16 周），20 轮约跨越 3 年人生",
+    coachWeeks:
+      "estimatedWeeks：预计该行动需要的周数（2-16 周）。日常小行动（试水、沟通、报名）2-6 周；常规阶段推进（学完一个模块、一轮求职投递、做出阶段成果）6-10 周；重大节点（项目落地、跳槽转型）8-16 周",
+    envWeeks:
+      "elapsedWeeks：本轮行动实际消耗的时间（周数，2-16）。时间尺度与行动规模匹配：日常小行动（试水、沟通、报名）2-6 周；常规的阶段推进（学完一个模块、一轮求职投递、做出阶段成果）6-10 周；重大节点（项目落地、跳槽、转型、迁移）8-16 周。现实中事情有快有慢，可与教练的预计不同",
+    playerCycle: "约 1-3 个月",
+  },
+  "5years": {
+    scale: "每轮推演代表一段时间（通常约一个季度），20 轮约跨越 5 年人生",
+    coachWeeks:
+      "estimatedWeeks：预计该行动需要的周数（4-16 周）。常规阶段推进（学完一个模块、一轮求职投递、做出阶段成果）约 8-13 周；重大节点（项目落地、跳槽转型）可达 14-16 周；快节奏行动 4-6 周",
+    envWeeks:
+      "elapsedWeeks：本轮行动实际消耗的时间（周数，4-16）。时间尺度与行动规模匹配：快节奏的试水、沟通、报名类 4-6 周；常规的阶段推进（学完一个模块、一轮求职投递、做出阶段成果）8-13 周；重大节点（项目落地、跳槽、转型、迁移）14-16 周。通常约 12 周（一个季度）。现实中事情有快有慢，可与教练的预计不同",
+    playerCycle: "约一个季度",
+  },
+};
+
 /** B 教练：生成人生规划 */
-export function getCoachSystemPrompt(): string {
+export function getCoachSystemPrompt(timeSpan: TimeSpan = "5years"): string {
+  const ts = TIME_SCALE[timeSpan];
   return `你是一位睿智的人生规划教练。你擅长根据用户现状和人生目标，制定切实可行的人生规划。
 
 你的任务分为两种模式：
 1. 规划模式：根据用户现状和目标，制定整体人生规划和下一步具体行动建议。
 2. 总结模式：回顾整个模拟历程，生成人生总结报告。
 
+时间尺度：${ts.scale}。
+
 规划模式要求：
 - 整体规划要宏观、有方向感，考虑3-5年的长期路径，overallPlan 控制在 120 字以内，只写方向和阶段，不展开细节
-- 下一步行动要具体、可执行，能在短期内落实，nextStep 控制在 60 字以内，只描述一个具体行动
+- 下一步行动是一个阶段性任务（不是几天的琐事），要具体、可执行、有明确产出，nextStep 控制在 60 字以内，只描述一个具体行动
+- ${ts.coachWeeks}
 - 考虑现实约束（年龄、资源、环境）
 - 规划要有弹性，能应对变化
 
@@ -25,14 +55,15 @@ export function getCoachSystemPrompt(): string {
 你必须以 JSON 格式回复，不要输出其他内容，不要使用 markdown 代码块标记。JSON 的 key 必须使用下方给定的英文单词，不要自创中文 key。
 
 规划模式 JSON 格式：
-{"overallPlan": "整体规划描述", "nextStep": "下一步具体行动"}
+{"overallPlan": "整体规划描述", "nextStep": "下一步具体行动", "estimatedWeeks": 12}
 
 总结模式 JSON 格式：
 {"report": "人生总结报告全文"}`;
 }
 
 /** A 执行者：执行行动 / 记录结果 */
-export function getPlayerSystemPrompt(): string {
+export function getPlayerSystemPrompt(timeSpan: TimeSpan = "5years"): string {
+  const ts = TIME_SCALE[timeSpan];
   return `你是人生执行者，扮演用户在人生模拟中的角色。你根据教练的规划去执行行动，并记录执行结果。
 
 你的任务分为两种模式：
@@ -40,7 +71,7 @@ export function getPlayerSystemPrompt(): string {
 2. 记录模式：根据环境反馈，总结这一轮的执行结果，判断是否需要修改目标。
 
 执行模式要求：
-- 描述具体的行动过程和思考，action 控制在 150 字以内
+- 描述具体的行动过程和思考。行动通常跨越一个阶段周期（约一个季度），描述这段时间内如何持续推进并取得阶段性成果，action 控制在 150 字以内
 - 语气自然、第一人称
 - 展现决心但也要面对现实
 
@@ -60,9 +91,12 @@ export function getPlayerSystemPrompt(): string {
 {"result": "本轮执行结果总结", "goalProgress": 15, "goalChanged": false, "newGoal": ""}`;
 }
 
-/** C 环境：模拟现实反馈并判定客观状态 */
-export function getEnvironmentSystemPrompt(): string {
+/** C 环境：模拟现实反馈 */
+export function getEnvironmentSystemPrompt(timeSpan: TimeSpan = "5years"): string {
+  const ts = TIME_SCALE[timeSpan];
   return `你是现实环境模拟器。你模拟外部世界对执行者行动的反馈，并客观判定世界状态的变化。
+
+时间尺度：${ts.scale}。
 
 你需要综合考虑以下因素给出反馈：
 - 陌生人和社会的反应
@@ -78,14 +112,24 @@ export function getEnvironmentSystemPrompt(): string {
 - 模拟真实世界的不可预测性
 
 状态判定要求（你只判定客观世界事实，不给行动者的目标打分）：
-- age：根据本轮时间流逝推进行动者的年龄（通常每轮 1-3 岁）
-- keyEvents：列出本轮世界发生的关键事件（2-4 条，每条 20 字以内）
+- ${ts.envWeeks}
+- keyEvents：列出本轮这段时间内世界发生的关键事件（2-4 条，每条 20 字以内）
 - resources：描述行动后的资源状况变化，如无变化可沿用原描述
+- 反馈内容可自然提及时间流逝（如"三个月后……"）
 
 你必须以 JSON 格式回复，不要输出其他内容，不要使用 markdown 代码块标记。
 
 JSON 格式：
-{"feedback": "环境的反馈内容，包含具体的人物、事件、结果", "state": {"age": 31, "keyEvents": ["事件1", "事件2"], "resources": "更新后的资源描述"}}`;
+{"feedback": "环境的反馈内容，包含具体的人物、事件、结果", "state": {"elapsedWeeks": 12, "keyEvents": ["事件1", "事件2"], "resources": "更新后的资源描述"}}`;
+}
+
+/** 浮点年龄格式化为「X岁Y个月」 */
+export function formatAgeCN(age: number): string {
+  const years = Math.floor(age);
+  const months = Math.round((age - years) * 12);
+  if (months === 0) return `${years}岁`;
+  if (months >= 12) return `${years + 1}岁`;
+  return `${years}岁${months}个月`;
 }
 
 /** 构建教练的规划请求 user prompt */
@@ -100,21 +144,22 @@ export function buildCoachPlanUserPrompt(state: {
   return `请为以下人生现状制定规划：
 
 【当前状态】
-年龄：${state.age}岁
+年龄：${formatAgeCN(state.age)}
 职业：${state.occupation}
 资源状况：${state.resources}
 人生目标：${state.goal}
 目标完成度：${state.goalProgress}%
 
 ${state.history ? `【历史执行记录】\n${state.history}\n` : ''}
-请输出 JSON 格式的整体规划和下一步行动。`;
+请输出 JSON 格式的整体规划和下一步行动（含预计周数 estimatedWeeks）。`;
 }
 
 /** 构建执行者的行动请求 user prompt */
-export function buildPlayerActionUserPrompt(nextStep: string): string {
+export function buildPlayerActionUserPrompt(nextStep: string, estimatedWeeks?: number): string {
   return `教练给出的下一步行动建议是：
 
 ${nextStep}
+${estimatedWeeks ? `\n（该行动预计历时约 ${estimatedWeeks} 周，请描述这段时间内你如何持续推进并取得阶段性成果）` : ''}
 
 请描述你如何执行这个行动。以 JSON 格式回复。`;
 }
@@ -125,18 +170,19 @@ export function buildEnvironmentUserPrompt(action: string, state: {
   occupation: string;
   resources: string;
   goal: string;
-}): string {
+}, estimatedWeeks?: number): string {
   return `执行者采取了以下行动：
 
 ${action}
 
 【执行者背景】
-年龄：${state.age}岁
+年龄：${formatAgeCN(state.age)}
 职业：${state.occupation}
 资源：${state.resources}
 人生目标：${state.goal}
+${estimatedWeeks ? `\n教练预计该行动历时约 ${estimatedWeeks} 周（如实际情况有快有慢，以实际为准判定 elapsedWeeks）` : ''}
 
-请模拟现实环境对这一行动的反馈，并判定客观世界状态。以 JSON 格式回复。`;
+请模拟现实环境对这一行动的反馈，并判定客观世界状态（含实际耗时 elapsedWeeks）。以 JSON 格式回复。`;
 }
 
 /** 构建执行者记录请求 user prompt */
@@ -149,7 +195,7 @@ export function buildPlayerRecordUserPrompt(
 ${feedback}
 
 【环境判定的世界状态】
-年龄：${state.age}岁
+当前年龄：${formatAgeCN(state.age)}
 目标：${state.goal}（你此前自评完成度 ${state.goalProgress}%）
 
 请总结本轮执行结果，自我衡量目标完成度，判断是否需要修改目标。以 JSON 格式回复。`;

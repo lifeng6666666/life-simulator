@@ -57,6 +57,7 @@ router.post('/', async (req: Request, res: Response) => {
     },
     rounds,
     rateLimitMs,
+    timeSpan: body.timeSpan,
     resume: body.resume,
   };
 
