@@ -164,7 +164,7 @@ export default function Simulate() {
             <Loader2 size={16} className="animate-spin text-amber shrink-0" />
             <p className="text-xs text-starwhite/70">
               <span className="text-amber font-medium">
-                {retryInfo.agent === "openrouter" ? "OpenRouter" : retryInfo.agent === "nvidia" ? "NVIDIA" : retryInfo.agent}
+                {retryInfo.agent === "openrouter" ? "OpenRouter" : retryInfo.agent}
               </span>{" "}
               调用失败（{retryInfo.reason}），正在重试{" "}
               <span className="font-mono text-amber">
