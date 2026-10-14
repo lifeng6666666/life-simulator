@@ -11,7 +11,6 @@ import { useSimulation } from "@/hooks/useSimulation";
 import { cn } from "@/lib/utils";
 
 const PROVIDER_OPTIONS: { value: ModelProvider; label: string; hint: string }[] = [
-  { value: "nvidia", label: "NVIDIA NIM", hint: "build.nvidia.com 免费额度" },
   { value: "openrouter", label: "OpenRouter 免费池", hint: "openrouter.ai 免费模型 $0/1M" },
   { value: "modelscope", label: "魔搭 ModelScope", hint: "modelscope.cn Flash 模型低消耗" },
 ];
@@ -32,7 +31,6 @@ const TIME_SPAN_OPTIONS: { value: TimeSpan; label: string; hint: string }[] = [
 
 /** 表单预填默认值：从本地 .env.local 读取（不提交到 Git），缺失则为空需手动填写 */
 const DEFAULTS = {
-  nvidiaKey: (import.meta.env.VITE_NVIDIA_KEY as string | undefined) ?? "",
   orKey: (import.meta.env.VITE_OPENROUTER_KEY as string | undefined) ?? "",
   msKey: (import.meta.env.VITE_MODELSCOPE_KEY as string | undefined) ?? "",
   age: 25,
@@ -47,7 +45,6 @@ export default function Setup() {
   const { begin } = useSimulation();
 
   const [provider, setProvider] = useState<ModelProvider>("openrouter");
-  const [nvidiaKey, setNvidiaKey] = useState(DEFAULTS.nvidiaKey);
   const [orKey, setOrKey] = useState(DEFAULTS.orKey);
   const [msKey, setMsKey] = useState(DEFAULTS.msKey);
   const [showKey, setShowKey] = useState(false);
@@ -62,7 +59,7 @@ export default function Setup() {
   const [models, setModels] = useState(DEFAULT_MODELS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const activeKey = provider === "nvidia" ? nvidiaKey : provider === "modelscope" ? msKey : orKey;
+  const activeKey = provider === "modelscope" ? msKey : orKey;
   const canStart = goal.trim() && activeKey.trim();
 
   const handleProviderChange = (p: ModelProvider) => {
@@ -74,7 +71,6 @@ export default function Setup() {
     if (!canStart) return;
     begin({
       apiKeys: {
-        nvidia: nvidiaKey.trim() || undefined,
         openrouter: orKey.trim() || undefined,
         modelscope: msKey.trim() || undefined,
       },
@@ -150,9 +146,7 @@ export default function Setup() {
             {/* API Key */}
             <div>
               <label className="block text-sm text-starwhite/70 mb-2 font-medium">
-                {provider === "nvidia"
-                  ? "NVIDIA API Key"
-                  : provider === "modelscope"
+                {provider === "modelscope"
                     ? "ModelScope 令牌 (Token)"
                     : "OpenRouter API Key"}
                 <span className="text-amber/80 ml-1">*</span>
@@ -162,14 +156,10 @@ export default function Setup() {
                   type={showKey ? "text" : "password"}
                   value={activeKey}
                   onChange={(e) => {
-                    if (provider === "nvidia") setNvidiaKey(e.target.value);
-                    else if (provider === "modelscope") setMsKey(e.target.value);
+                    if (provider === "modelscope") setMsKey(e.target.value);
                     else setOrKey(e.target.value);
                   }}
-                  placeholder={
-                    provider === "nvidia"
-                      ? "nvapi-xxxx..."
-                      : provider === "modelscope"
+                  placeholder={provider === "modelscope"
                         ? "ms-xxxx-xxxx..."
                         : "sk-or-v1-xxxx..."
                   }
@@ -184,20 +174,7 @@ export default function Setup() {
                 </button>
               </div>
               <p className="text-xs text-starwhite/40 mt-1.5">
-                {provider === "nvidia" ? (
-                  <>
-                    从{" "}
-                    <a
-                      href="https://build.nvidia.com/models"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-amber/70 hover:text-amber underline"
-                    >
-                      build.nvidia.com
-                    </a>{" "}
-                    获取免费 API Key
-                  </>
-                ) : provider === "modelscope" ? (
+                {provider === "modelscope" ? (
                   <>
                     从{" "}
                     <a

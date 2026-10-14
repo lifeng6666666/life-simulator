@@ -1,20 +1,18 @@
 /**
- * 浏览器端 LLM 客户端：直连 OpenAI 兼容接口（OpenRouter / ModelScope / NVIDIA）
+ * 浏览器端 LLM 客户端：直连 OpenAI 兼容接口（OpenRouter / ModelScope）
  * - key 只存在于浏览器内存，不经过任何中间服务器
  * - 内置 429/网络错误退避重试
  */
 
-export type LLMProvider = 'nvidia' | 'openrouter' | 'modelscope';
+export type LLMProvider = 'openrouter' | 'modelscope';
 
 const PROVIDER_BASE_URL: Record<LLMProvider, string> = {
-  nvidia: 'https://integrate.api.nvidia.com/v1',
   openrouter: 'https://openrouter.ai/api/v1',
   modelscope: 'https://api-inference.modelscope.cn/v1',
 };
 
 /** 是否支持浏览器直连（CORS 已验证） */
 export const BROWSER_FRIENDLY: Record<LLMProvider, boolean> = {
-  nvidia: false,
   openrouter: true,
   modelscope: true,
 };

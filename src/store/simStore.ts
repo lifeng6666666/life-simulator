@@ -28,7 +28,7 @@ export interface RoundData {
   keyEvents: string[];
 }
 
-export type ModelProvider = "nvidia" | "openrouter" | "modelscope";
+export type ModelProvider = "openrouter" | "modelscope";
 
 export interface ModelSpec {
   id: string;
@@ -40,7 +40,6 @@ export type TimeSpan = "3years" | "5years";
 
 export interface SimConfig {
   apiKeys: {
-    nvidia?: string;
     openrouter?: string;
     modelscope?: string;
   };

@@ -1,8 +1,8 @@
 /**
- * 可用模型列表（NVIDIA NIM + OpenRouter 免费池 + 魔搭 Flash）
+ * 可用模型列表（OpenRouter 免费池 + 魔搭 Flash，均支持浏览器直连）
  */
 
-export type ModelProvider = "nvidia" | "openrouter" | "modelscope";
+export type ModelProvider = "openrouter" | "modelscope";
 
 export interface ModelInfo {
   id: string;
@@ -12,50 +12,6 @@ export interface ModelInfo {
 }
 
 export const AVAILABLE_MODELS: ModelInfo[] = [
-  // NVIDIA NIM
-  {
-    id: "deepseek-ai/deepseek-v4.1-flash",
-    label: "DeepSeek V4.1 Flash",
-    description: "552B MoE 推理强，适合战略规划与复杂分析",
-    provider: "nvidia",
-  },
-  {
-    id: "nvidia/nemotron-3.5-lightning-30b-a3b",
-    label: "Nemotron 3.5 Lightning 30B",
-    description: "30B 快速响应，适合执行推演与高频调用",
-    provider: "nvidia",
-  },
-  {
-    id: "z-ai/glm-5-3-flash",
-    label: "GLM-5.3 Flash",
-    description: "320B 多模态 MoE，适合环境模拟与角色扮演",
-    provider: "nvidia",
-  },
-  {
-    id: "z-ai/glm-5.3",
-    label: "GLM-5.3",
-    description: "753B 文本 MoE，推理与工具调用能力强",
-    provider: "nvidia",
-  },
-  {
-    id: "moonshotai/kimi-k3",
-    label: "Kimi K3",
-    description: "2.8T 超大 MoE，长程推理与 agentic 任务",
-    provider: "nvidia",
-  },
-  {
-    id: "meta/muse-glimmer-30b",
-    label: "Muse Glimmer 30B",
-    description: "Meta 多模态推理模型，原生工具调用",
-    provider: "nvidia",
-  },
-  {
-    id: "nvidia/nemotron-3-ultra-550b-a55b",
-    label: "Nemotron 3 Ultra 550B",
-    description: "550B 超大 MoE，1M 上下文，适合长程规划",
-    provider: "nvidia",
-  },
-
   // OpenRouter 免费模型（$0/M tokens）
   {
     id: "thinkingmachines/inkling:free",
@@ -131,19 +87,15 @@ export const MODEL_MAP: Record<string, ModelInfo> = Object.fromEntries(
   AVAILABLE_MODELS.map((m) => [m.id, m])
 );
 
+/** 默认三角色模型（OpenRouter 免费池） */
 export const DEFAULT_MODELS = {
-  coach: "deepseek-ai/deepseek-v4.1-flash",
-  player: "nvidia/nemotron-3.5-lightning-30b-a3b",
-  environment: "z-ai/glm-5.3-flash",
+  coach: "nvidia/nemotron-3.5-lightning:free",
+  player: "thinkingmachines/inkling-small:free",
+  environment: "google/gemma-4-26b-a4b-it:free",
 };
 
 /** 模型按 provider 分组，供 optgroup 渲染 */
 export const MODEL_GROUPS: { label: string; provider: ModelProvider; models: ModelInfo[] }[] = [
-  {
-    label: "NVIDIA NIM",
-    provider: "nvidia",
-    models: AVAILABLE_MODELS.filter((m) => m.provider === "nvidia"),
-  },
   {
     label: "OpenRouter 免费池",
     provider: "openrouter",
@@ -161,11 +113,6 @@ export const PROVIDER_DEFAULTS: Record<
   ModelProvider,
   { coach: string; player: string; environment: string }
 > = {
-  nvidia: {
-    coach: "deepseek-ai/deepseek-v4.1-flash",
-    player: "nvidia/nemotron-3.5-lightning-30b-a3b",
-    environment: "z-ai/glm-5.3-flash",
-  },
   openrouter: {
     coach: "nvidia/nemotron-3.5-lightning:free",
     player: "thinkingmachines/inkling-small:free",
