@@ -4,8 +4,9 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Rocket, Eye, EyeOff, ChevronDown, History, Share2 } from "lucide-react";
+import { Rocket, Eye, EyeOff, ChevronDown, History, Share2, PlayCircle } from "lucide-react";
 import { AVAILABLE_MODELS, PROVIDER_DEFAULTS, DEFAULT_MODELS } from "@/lib/models";
+import { EXAMPLE_SHARE_CODE } from "@/lib/example";
 import type { ModelProvider, TimeSpan } from "@/store/simStore";
 import { useSimulation } from "@/hooks/useSimulation";
 import { cn } from "@/lib/utils";
@@ -100,7 +101,14 @@ export default function Setup() {
         <div className="w-full max-w-3xl">
           {/* 标题区 */}
           {/* 历史入口 */}
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-end gap-5 mb-2">
+            <button
+              onClick={() => navigate(`/gallery?r=${EXAMPLE_SHARE_CODE}`)}
+              className="flex items-center gap-1.5 text-sm text-starwhite/40 hover:text-amber transition-colors"
+            >
+              <PlayCircle size={15} />
+              推演实例
+            </button>
             <button
               onClick={() => navigate("/history")}
               className="flex items-center gap-1.5 text-sm text-starwhite/40 hover:text-amber transition-colors"
